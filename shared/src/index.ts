@@ -13,6 +13,8 @@ export interface PlayerState {
   id: string;
   name: string;
   score: number;
+  lang: Lang;
+  /** ISO country code of last pick */
   lastAnswer?: string;
   lastCorrect?: boolean;
   answeredAt?: number;
@@ -22,8 +24,8 @@ export interface RoundState {
   round: number;
   totalRounds: number;
   flagCode: string;
-  /** Country name labels in current room language */
-  options: string[];
+  /** ISO codes — each client renders names in their own language */
+  optionCodes: string[];
   correctCode?: string;
   endsAt: number;
   startedAt: number;
@@ -34,12 +36,10 @@ export interface RoomState {
   hostId: string;
   phase: RoomPhase;
   difficulty: Difficulty;
-  lang: Lang;
   players: PlayerState[];
   round?: RoundState;
   roundResults?: {
     correctCode: string;
-    correctName: string;
     scores: { id: string; name: string; delta: number; total: number }[];
   };
 }

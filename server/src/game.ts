@@ -2,7 +2,6 @@ import {
   OPTION_COUNT,
   ROUND_TIME_MS,
   TOTAL_ROUNDS,
-  countryName,
   getCountry,
   poolForDifficulty,
   shuffle,
@@ -16,7 +15,6 @@ import {
 } from "@flags/shared";
 
 interface InternalRound extends RoundState {
-  optionCodes: string[];
   correctCode: string;
 }
 
@@ -25,7 +23,6 @@ interface InternalRoom {
   hostId: string;
   phase: RoomPhase;
   difficulty: Difficulty;
-  lang: Lang;
   players: Map<string, PlayerState>;
   round?: InternalRound;
   roundResults?: RoomState["roundResults"];
@@ -53,11 +50,14 @@ function pickCorrect(pool: Country[], used: Set<string>): Country | null {
   return available[Math.floor(Math.random() * available.length)];
 }
 
-function buildOptions(correct: Country, pool: Country[], lang: Lang): string[] {
+function buildOptionCodes(correct: Country, pool: Country[]): string[] {
   const distractorPool = pool.filter((c) => c.code !== correct.code);
   const distractors = shuffle(distractorPool).slice(0, OPTION_COUNT - 1);
-  const options = shuffle([correct, ...distractors]);
-  return options.map((c) => c.code);
+  return shuffle([correct, ...distractors]).map((c) => c.code);
+}
+
+function newPlayer(id: string, name: string, lang: Lang): PlayerState {
+  return { id, name: name.slice(0, 20), score: 0, lang };
 }
 
 function publicState(room: InternalRoom): RoomState {
@@ -67,7 +67,6 @@ function publicState(room: InternalRoom): RoomState {
     hostId: room.hostId,
     phase: room.phase,
     difficulty: room.difficulty,
-    lang: room.lang,
     players,
     roundResults: room.roundResults,
   };
@@ -77,7 +76,7 @@ function publicState(room: InternalRoom): RoomState {
       round: room.round.round,
       totalRounds: room.round.totalRounds,
       flagCode: room.round.flagCode,
-      options: [...room.round.options],
+      optionCodes: [...room.round.optionCodes],
       startedAt: room.round.startedAt,
       endsAt: room.round.endsAt,
     };
@@ -113,12 +112,11 @@ export function createRoom(
     hostId: playerId,
     phase: "lobby",
     difficulty: "medium",
-    lang,
     players: new Map(),
     usedCodes: new Set(),
     currentRound: 0,
   };
-  room.players.set(playerId, { id: playerId, name: name.slice(0, 20), score: 0 });
+  room.players.set(playerId, newPlayer(playerId, name, lang));
   rooms.set(code, room);
   playerRoom.set(playerId, code);
   return { room, state: publicState(room) };
@@ -135,8 +133,7 @@ export function joinRoom(
   if (room.phase !== "lobby") return { ok: false, error: "game_started" };
 
   leaveRoom(playerId);
-  room.players.set(playerId, { id: playerId, name: name.slice(0, 20), score: 0 });
-  room.lang = lang;
+  room.players.set(playerId, newPlayer(playerId, name, lang));
   playerRoom.set(playerId, code.toUpperCase());
   return { ok: true, state: publicState(room) };
 }
@@ -167,23 +164,10 @@ export function leaveRoom(playerId: string): string | null {
   return code;
 }
 
-function localizeRound(room: InternalRoom) {
-  if (!room.round) return;
-  room.round.options = room.round.optionCodes.map((code) =>
-    countryName(getCountry(code)!, room.lang),
-  );
-  if (room.roundResults && room.round.correctCode) {
-    const correct = getCountry(room.round.correctCode)!;
-    room.roundResults.correctName = countryName(correct, room.lang);
-  }
-}
-
-export function setLang(playerId: string, lang: Lang): RoomState | null {
+export function setLang(playerId: string, lang: Lang): void {
   const room = getPlayerRoom(playerId);
-  if (!room) return null;
-  room.lang = lang;
-  localizeRound(room);
-  return publicState(room);
+  const player = room?.players.get(playerId);
+  if (player) player.lang = lang;
 }
 
 export function setDifficulty(playerId: string, difficulty: Difficulty): RoomState | null {
@@ -246,7 +230,7 @@ function startRound(room: InternalRoom): RoomState | null {
   room.currentRound += 1;
 
   const now = Date.now();
-  const options = buildOptions(correct, pool, room.lang);
+  const optionCodes = buildOptionCodes(correct, pool);
 
   for (const p of room.players.values()) {
     delete p.lastAnswer;
@@ -258,8 +242,7 @@ function startRound(room: InternalRoom): RoomState | null {
     round: room.currentRound,
     totalRounds: TOTAL_ROUNDS,
     flagCode: correct.code,
-    optionCodes: options,
-    options: options.map((code) => countryName(getCountry(code)!, room.lang)),
+    optionCodes,
     correctCode: correct.code,
     startedAt: now,
     endsAt: now + ROUND_TIME_MS,
@@ -272,19 +255,20 @@ function startRound(room: InternalRoom): RoomState | null {
   return publicState(room);
 }
 
-export function submitAnswer(playerId: string, answerLabel: string): RoomState | null {
+export function submitAnswer(playerId: string, answerCode: string): RoomState | null {
   const room = getPlayerRoom(playerId);
   if (!room || room.phase !== "playing" || !room.round) return null;
 
   const player = room.players.get(playerId);
   if (!player || player.answeredAt) return publicState(room);
 
-  const idx = room.round.options.indexOf(answerLabel);
-  const code = idx >= 0 ? room.round.optionCodes[idx] : answerLabel;
+  const code = answerCode.toUpperCase();
+  if (!room.round.optionCodes.includes(code)) return publicState(room);
+
   const correct = code === room.round.correctCode;
   const now = Date.now();
 
-  player.lastAnswer = answerLabel;
+  player.lastAnswer = code;
   player.lastCorrect = correct;
   player.answeredAt = now;
 
@@ -308,7 +292,6 @@ function endRound(room: InternalRoom) {
 
   const deltas: RoomState["roundResults"] = {
     correctCode: correct.code,
-    correctName: countryName(correct, room.lang),
     scores: [],
   };
 

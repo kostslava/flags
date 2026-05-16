@@ -49,8 +49,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("setLang", (lang) => {
-    const state = game.setLang(socket.id, lang);
-    if (state) emitRoom(state.code);
+    game.setLang(socket.id, lang);
   });
 
   socket.on("setDifficulty", (difficulty) => {

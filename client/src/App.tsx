@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Difficulty, Lang, RoomState } from "@flags/shared";
 import { flagUrl } from "@flags/shared";
+import { countryLabel } from "./labels";
 import { isBackendConfigured, socket } from "./socket";
 import { t, type StringKey } from "./i18n";
 
@@ -196,7 +197,7 @@ export default function App() {
             room={room}
             myId={myId}
             isHost={isHost}
-            onAnswer={(label) => socket.emit("answer", label)}
+            onAnswer={(code) => socket.emit("answer", code)}
             onNext={() => socket.emit("nextRound")}
             onLeave={leave}
           />
@@ -437,7 +438,7 @@ function GameScreen({
       <div className="card game-screen">
         <div className="round-result">
           <h3>{t(lang, "round")} {round?.round}</h3>
-          <p className="answer">{room.roundResults.correctName}</p>
+          <p className="answer">{countryLabel(room.roundResults.correctCode, lang)}</p>
         </div>
         <ul className="result-list">
           {room.roundResults.scores.map((s) => (
@@ -483,11 +484,11 @@ function PlayingRound({
   room: RoomState;
   round: NonNullable<RoomState["round"]>;
   me: RoomState["players"][0] | undefined;
-  onAnswer: (label: string) => void;
+  onAnswer: (code: string) => void;
 }) {
   const [now, setNow] = useState(Date.now());
   const answered = Boolean(me?.answeredAt);
-  const myAnswer = me?.lastAnswer;
+  const myAnswerCode = me?.lastAnswer;
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 50);
@@ -499,6 +500,15 @@ function PlayingRound({
   const low = pct < 25;
 
   const flagSrc = useMemo(() => flagUrl(round.flagCode, 64), [round.flagCode]);
+
+  const options = useMemo(
+    () =>
+      round.optionCodes.map((code) => ({
+        code,
+        label: countryLabel(code, lang),
+      })),
+    [round.optionCodes, lang],
+  );
 
   return (
     <div className="game-screen">
@@ -544,16 +554,16 @@ function PlayingRound({
       )}
 
       <div className="options-grid">
-        {round.options.map((label) => {
+        {options.map(({ code, label }) => {
           let cls = "option-btn";
-          if (answered && label === myAnswer) cls += " selected";
+          if (answered && code === myAnswerCode) cls += " selected";
           return (
             <button
-              key={label}
+              key={code}
               type="button"
               className={cls}
               disabled={answered}
-              onClick={() => onAnswer(label)}
+              onClick={() => onAnswer(code)}
             >
               {label}
             </button>
