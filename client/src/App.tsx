@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Difficulty, Lang, RoomState } from "@flags/shared";
 import { flagUrl } from "@flags/shared";
-import { socket } from "./socket";
+import { isBackendConfigured, socket } from "./socket";
 import { t, type StringKey } from "./i18n";
 
 type Screen = "home" | "lobby" | "game";
@@ -26,6 +26,7 @@ export default function App() {
   const [room, setRoom] = useState<RoomState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [connected, setConnected] = useState(socket.connected);
+  const [connectFailed, setConnectFailed] = useState(false);
   const [copied, setCopied] = useState(false);
   const [myId, setMyId] = useState(socket.id);
 
@@ -36,9 +37,11 @@ export default function App() {
   useEffect(() => {
     const onConnect = () => {
       setConnected(true);
+      setConnectFailed(false);
       setMyId(socket.id);
     };
     const onDisconnect = () => setConnected(false);
+    const onConnectError = () => setConnectFailed(true);
     const onRoom = (state: RoomState) => {
       setRoom(state);
       setError(null);
@@ -49,14 +52,24 @@ export default function App() {
 
     socket.on("connect", onConnect);
     socket.on("disconnect", onDisconnect);
+    socket.on("connect_error", onConnectError);
     socket.on("roomState", onRoom);
     socket.on("error", onErr);
 
     if (socket.connected) setMyId(socket.id);
 
+    let failTimer: ReturnType<typeof setTimeout> | undefined;
+    if (isBackendConfigured && !socket.connected) {
+      failTimer = setTimeout(() => {
+        if (!socket.connected) setConnectFailed(true);
+      }, 10_000);
+    }
+
     return () => {
+      clearTimeout(failTimer);
       socket.off("connect", onConnect);
       socket.off("disconnect", onDisconnect);
+      socket.off("connect_error", onConnectError);
       socket.off("roomState", onRoom);
       socket.off("error", onErr);
     };
@@ -138,8 +151,14 @@ export default function App() {
       </header>
 
       <main className="main">
-        {!connected && (
-          <p className="waiting-msg">{t(lang, "connecting")}</p>
+        {!isBackendConfigured && (
+          <div className="error-toast">{t(lang, "serverNotConfigured")}</div>
+        )}
+
+        {isBackendConfigured && !connected && (
+          <p className="waiting-msg">
+            {connectFailed ? t(lang, "connectionFailed") : t(lang, "connecting")}
+          </p>
         )}
 
         {error && <div className="error-toast">{error}</div>}
@@ -153,7 +172,7 @@ export default function App() {
             setJoinCode={setJoinCode}
             onCreate={createLobby}
             onJoin={joinLobby}
-            disabled={!connected}
+            disabled={!isBackendConfigured || !connected}
           />
         )}
 

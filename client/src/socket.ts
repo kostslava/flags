@@ -1,12 +1,15 @@
 import { io, type Socket } from "socket.io-client";
 import type { ClientToServerEvents, ServerToClientEvents } from "@flags/shared";
 
-/** In dev, Vite proxies /socket.io. On Vercel, set VITE_SOCKET_URL to your Render/Railway backend. */
-const url = import.meta.env.DEV
-  ? undefined
-  : import.meta.env.VITE_SOCKET_URL || undefined;
+const serverUrl = import.meta.env.VITE_SOCKET_URL?.trim() || undefined;
 
-export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(url, {
-  autoConnect: true,
-  transports: ["websocket", "polling"],
-});
+/** True when the client knows where the game server is (dev proxy or VITE_SOCKET_URL). */
+export const isBackendConfigured = import.meta.env.DEV || Boolean(serverUrl);
+
+export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
+  import.meta.env.DEV ? undefined : serverUrl,
+  {
+    autoConnect: isBackendConfigured,
+    transports: ["websocket", "polling"],
+  },
+);

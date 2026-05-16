@@ -12,8 +12,12 @@ const PORT = Number(process.env.PORT) || 3001;
 const isProd = process.env.NODE_ENV === "production";
 
 const app = express();
-app.use(cors());
+app.use(cors({ origin: true }));
 app.use(express.json());
+
+app.get("/health", (_req, res) => {
+  res.json({ ok: true });
+});
 
 const httpServer = createServer(app);
 const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {

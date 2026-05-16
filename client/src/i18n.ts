@@ -38,6 +38,9 @@ const strings = {
     error_game_started: "Game already started",
     error_join: "Could not join room",
     connecting: "Connecting…",
+    connectionFailed: "Cannot reach game server. Check that the API is running.",
+    serverNotConfigured:
+      "Game server not linked. Deploy the API (e.g. Render) and set VITE_SOCKET_URL on Vercel, then redeploy.",
     answered: "Answer locked in",
   },
   ru: {
@@ -77,6 +80,9 @@ const strings = {
     error_game_started: "Игра уже началась",
     error_join: "Не удалось войти",
     connecting: "Подключение…",
+    connectionFailed: "Не удаётся подключиться к серверу игры.",
+    serverNotConfigured:
+      "Сервер не настроен. Разверните API (например Render), задайте VITE_SOCKET_URL в Vercel и пересоберите сайт.",
     answered: "Ответ принят",
   },
 } as const;
