@@ -75,7 +75,8 @@ export function countryName(c: Country, lang: Lang): string {
 
 export type FlagStyle = "flat" | "shiny";
 
-const FLAG_API_SIZES = [16, 24, 32, 48, 64, 128, 256] as const;
+/** flagsapi.com only supports 16, 24, 32, 48, 64 (see https://flagsapi.com) */
+const FLAG_API_SIZES = [16, 24, 32, 48, 64] as const;
 
 function nearestFlagApiSize(requested: number): (typeof FLAG_API_SIZES)[number] {
   return FLAG_API_SIZES.reduce((best, n) =>
@@ -83,8 +84,8 @@ function nearestFlagApiSize(requested: number): (typeof FLAG_API_SIZES)[number] 
   );
 }
 
-/** https://flagsapi.com/:country_code/:style/:size.png */
-export function flagUrl(code: string, size = 256, style: FlagStyle = "flat"): string {
+/** https://flagsapi.com/:country_code/:style/:size.png — scale up in CSS if needed */
+export function flagUrl(code: string, size = 64, style: FlagStyle = "flat"): string {
   const px = nearestFlagApiSize(size);
   return `https://flagsapi.com/${code.toUpperCase()}/${style}/${px}.png`;
 }
