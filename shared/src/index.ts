@@ -73,8 +73,20 @@ export function countryName(c: Country, lang: Lang): string {
   return lang === "ru" ? c.ru : c.en;
 }
 
-export function flagUrl(code: string, width = 640): string {
-  return `https://flagcdn.com/w${width}/${code.toLowerCase()}.png`;
+export type FlagStyle = "flat" | "shiny";
+
+const FLAG_API_SIZES = [16, 24, 32, 48, 64, 128, 256] as const;
+
+function nearestFlagApiSize(requested: number): (typeof FLAG_API_SIZES)[number] {
+  return FLAG_API_SIZES.reduce((best, n) =>
+    Math.abs(n - requested) < Math.abs(best - requested) ? n : best,
+  );
+}
+
+/** https://flagsapi.com/:country_code/:style/:size.png */
+export function flagUrl(code: string, size = 256, style: FlagStyle = "flat"): string {
+  const px = nearestFlagApiSize(size);
+  return `https://flagsapi.com/${code.toUpperCase()}/${style}/${px}.png`;
 }
 
 export { COUNTRIES, getCountry, poolForDifficulty, shuffle } from "./countries.js";

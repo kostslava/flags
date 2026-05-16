@@ -498,7 +498,7 @@ function PlayingRound({
   const pct = (remaining / (round.endsAt - round.startedAt)) * 100;
   const low = pct < 25;
 
-  const flagSrc = useMemo(() => flagUrl(round.flagCode, 480), [round.flagCode]);
+  const flagSrc = useMemo(() => flagUrl(round.flagCode, 256), [round.flagCode]);
 
   return (
     <div className="game-screen">
@@ -517,7 +517,18 @@ function PlayingRound({
       </div>
 
       <div className="flag-frame">
-        <img src={flagSrc} alt="" draggable={false} />
+        <img
+          src={flagSrc}
+          alt=""
+          draggable={false}
+          onError={(e) => {
+            const img = e.currentTarget;
+            if (img.dataset.fallback !== "shiny") {
+              img.dataset.fallback = "shiny";
+              img.src = flagUrl(round.flagCode, 256, "shiny");
+            }
+          }}
+        />
       </div>
 
       <div className="scoreboard-mini">

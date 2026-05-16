@@ -34,7 +34,7 @@ Serves the built client and Socket.IO from a single server on port 3001 (or `POR
 - Express + Socket.IO (server)
 - Shared TypeScript types and country data
 
-Flag images via [flagcdn.com](https://flagcdn.com).
+Flag images via [flagsapi.com](https://flagsapi.com).
 
 ## Deploy
 
