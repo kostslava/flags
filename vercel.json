@@ -1,5 +1,6 @@
 {
-  "buildCommand": "npm run build:vercel",
+  "installCommand": "npm install",
+  "buildCommand": "npm run build --workspace=@flags/shared && npm run build --workspace=@flags/client",
   "outputDirectory": "client/dist",
   "framework": null,
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]

@@ -1,0 +1,7 @@
+{
+  "installCommand": "cd .. && npm install",
+  "buildCommand": "cd .. && npm run build --workspace=@flags/shared && npm run build --workspace=@flags/client",
+  "outputDirectory": "dist",
+  "framework": null,
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}
