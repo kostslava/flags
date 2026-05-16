@@ -35,3 +35,17 @@ Serves the built client and Socket.IO from a single server on port 3001 (or `POR
 - Shared TypeScript types and country data
 
 Flag images via [flagcdn.com](https://flagcdn.com).
+
+## Deploy
+
+**No database.** Room state lives in server memory.
+
+### Vercel (frontend only)
+
+1. Import the GitHub repo on Vercel (uses `vercel.json` → builds `client/dist`).
+2. Deploy the **API** on [Render](https://render.com) or Railway (use `render.yaml` or `npm run build && npm start`).
+3. In Vercel → **Settings → Environment Variables**, add:
+   - `VITE_SOCKET_URL` = your Render URL, e.g. `https://flags-api.onrender.com`
+4. Redeploy Vercel after setting the variable.
+
+Multiplayer will not work until `VITE_SOCKET_URL` points at a running Node server.
